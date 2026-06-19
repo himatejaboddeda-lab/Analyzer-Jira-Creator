@@ -101,7 +101,8 @@ textarea{resize:vertical;min-height:130px;line-height:1.6}
   <button class="ex-btn" onclick="loadEx('chef')">↳ Chef Krish</button>&nbsp;&nbsp;
   <button class="ex-btn" onclick="loadEx('century')">↳ CenturyLink</button>&nbsp;&nbsp;
   <button class="ex-btn" onclick="loadEx('quantum')">↳ QuantumFiber</button>&nbsp;&nbsp;
-  <button class="ex-btn" onclick="loadEx('gulmohar')">↳ Gulmohar Greens</button>
+  <button class="ex-btn" onclick="loadEx('gulmohar')">↳ Gulmohar Greens</button>&nbsp;&nbsp;
+  <button class="ex-btn" onclick="loadEx('taste')">↳ Taste of India (menu)</button>
   <br><br>
   <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">🧠 Analyze &amp; Detect Company</button>
 </div>
@@ -218,7 +219,8 @@ var EXAMPLES = {
   chef:    'We need to add real-time inventory management to Chef Krish. When the AI router receives a question about a dish, it should first check if the ingredient is in stock. Low-stock items should trigger a Jira ticket automatically. Cache must never be used for stock data — same rule as allergens.',
   century: 'CenturyLink checkout page needs an upgrade. When a customer selects an internet plan, they should see available speed upgrade options with pricing displayed inline. Payment module needs to handle the bundle pricing correctly.',
   quantum: 'QuantumFiber location at 1 N Jamestown Way, Aurora CO 80018 needs the 5Gig plan enabled in the system. The product detail page for this address should show the 5Gig option with correct pricing. The cart and checkout should support the 5Gig plan SKU.',
-  gulmohar:'Gulmohar Greens product detail page is missing the breed description for Kadaknath (Black Chicken) and Bater (Quail). The product detail page needs a breed info section and the allergy safety tags must be visible before add-to-cart.'
+  gulmohar:'Gulmohar Greens product detail page is missing the breed description for Kadaknath (Black Chicken) and Bater (Quail). The product detail page needs a breed info section and the allergy safety tags must be visible before add-to-cart.',
+  taste:   'Add two new dishes to the Taste of India menu: Kaju Chicken in the Appetizers category, and Nellore Fish Curry in the Seafood Entrees category. Make sure existing menu items are not affected and allergens are declared.'
 };
 function loadEx(k){ document.getElementById('discussion').value = EXAMPLES[k] || ''; }
 
@@ -287,6 +289,24 @@ function buildResultHTML(a){
   html += '<span class="risk-tag '+riskCls+'">'+(a.riskLevel||'Medium')+' Risk</span>';
   html += '<span style="font-size:12px;color:var(--muted)">'+esc(a.riskReason||'')+'</span></div>';
   html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px">'+esc(a.summary||'')+'</div>';
+
+  // ENTITY TYPE badge — Restaurant (menu update) vs Application
+  if(a.entityType === 'Restaurant'){
+    html += '<div style="display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;background:var(--ok-dim);color:var(--ok);border:1px solid var(--ok);margin-bottom:10px">🍽️ RESTAURANT MENU UPDATE — owned, upgrades allowed'+(a.entityId?' · '+esc(a.entityId):'')+'</div>';
+  }
+
+  // MENU ITEMS — dish → category → allergens (restaurant only)
+  if(a.entityType === 'Restaurant' && (a.menuItems||[]).length){
+    html += '<div class="sec">Menu Items to Add</div>';
+    (a.menuItems||[]).forEach(function(mi){
+      html += '<div style="padding:8px 12px;background:var(--surface2);border:1px solid var(--ok);border-radius:8px;margin-bottom:6px;font-size:12px">';
+      html += '<strong style="color:var(--ok)">'+esc(mi.dish||'')+'</strong> → category: <strong>'+esc(mi.category||'')+'</strong>';
+      if((mi.allergens||[]).length) html += '<br><span style="color:var(--muted)">Allergens: '+esc((mi.allergens||[]).join(', '))+'</span>';
+      if(mi.isVeg===true) html += ' <span style="color:var(--ok)">· veg</span>';
+      else if(mi.isVeg===false) html += ' <span style="color:var(--warn)">· non-veg</span>';
+      html += '</div>';
+    });
+  }
 
   if((a.acceptanceCriteria||[]).length){
     html += '<div class="sec">Acceptance Criteria</div>';
