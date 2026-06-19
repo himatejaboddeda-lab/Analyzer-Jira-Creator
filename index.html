@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Requirements Analyzer</title>
+<style>
+:root{--bg:#0B0E14;--surface:#151A23;--surface2:#1D2430;--border:#2B3340;--text:#E4E9F0;--muted:#7A879E;--neo4j:#00B8D4;--neo4j-dim:#08252C;--pine:#A05BE0;--ok:#22D3A5;--ok-dim:#0A2820;--warn:#F5A623;--warn-dim:#2A1E08;--danger:#F26D6D;--danger-dim:#2A0D0D;--jira:#0052CC;--jira-dim:#001030;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding:24px 20px}
+.wrap{max-width:820px;margin:0 auto}
+.hdr{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.hdr-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0052CC,var(--pine));display:flex;align-items:center;justify-content:center;font-size:20px}
+.hdr-title{font-size:18px;font-weight:700}
+.hdr-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.fld{margin-bottom:14px}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
+input,textarea{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;outline:none}
+input:focus,textarea:focus{border-color:var(--neo4j)}
+textarea{resize:vertical;min-height:130px;line-height:1.6}
+.hint{font-size:11px;color:var(--muted);margin-top:4px}
+.btn{padding:11px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:hover:not(:disabled){opacity:.88}
+.btn-primary{background:linear-gradient(135deg,var(--neo4j),var(--pine));color:#fff;width:100%}
+.btn-jira{background:var(--jira);color:#fff;width:100%;margin-top:10px}
+.btn-sm{padding:7px 14px;font-size:11px}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.status-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.status-row:last-child{border:none}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--ok)}
+.dot-fail{background:var(--danger)}
+.dot-warn{background:var(--warn)}
+.dot-wait{background:var(--muted)}
+.badge{padding:2px 10px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-ok{background:var(--ok-dim);color:var(--ok);border:1px solid var(--ok)}
+.badge-fail{background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger)}
+.badge-warn{background:var(--warn-dim);color:var(--warn);border:1px solid var(--warn)}
+.ex-btn{font-size:11px;color:var(--neo4j);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit}
+#result{display:none}
+.det-box{background:var(--neo4j-dim);border:1px solid var(--neo4j);border-radius:8px;padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.det-name{font-size:16px;font-weight:700;color:var(--neo4j)}
+.det-conf{font-size:11px;color:var(--muted)}
+.jkey{background:var(--jira-dim);border:1px solid var(--jira);color:#4A9DFF;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;font-family:monospace;margin-left:auto}
+.sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}
+.ac-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5}
+.ac-item:last-child{border:none}
+.ac-ok{color:var(--ok);flex-shrink:0}
+.ch-item{padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ch-item:last-child{border:none}
+.mpill{display:inline-block;padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:11px;margin:2px;color:var(--muted)}
+.risk-tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.risk-h{background:var(--danger-dim);color:var(--danger)}
+.risk-m{background:var(--warn-dim);color:var(--warn)}
+.risk-l{background:var(--ok-dim);color:var(--ok)}
+.ticket-ok{background:var(--ok-dim);border:1px solid var(--ok);color:var(--ok);padding:14px;border-radius:8px;font-size:13px;margin-top:10px}
+.ticket-err{background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger);padding:14px;border-radius:8px;font-size:13px;margin-top:10px;word-break:break-word}
+.err-box{background:var(--danger-dim);border:1px solid var(--danger);border-radius:8px;padding:12px;font-size:13px;color:var(--danger)}
+.next-box{margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.8;color:var(--muted);display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div class="hdr-icon">🧠</div>
+  <div>
+    <div class="hdr-title">AI Requirements Analyzer</div>
+    <div class="hdr-sub">Write requirement → auto-detects company from Neo4j → creates Jira backlog ticket → AI Test Plan generates the plan</div>
+  </div>
+</div>
+
+<!-- Health / Connection Status -->
+<div class="card">
+  <div class="card-title">Connection Status</div>
+  <div id="health-rows">
+    <div class="status-row"><div class="dot dot-wait"></div><span style="color:var(--muted)">Checking connections...</span></div>
+  </div>
+  <button class="btn btn-sm" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);margin-top:10px" onclick="checkHealth()">&#8635; Refresh status</button>
+</div>
+
+<!-- Worker URL -->
+<div class="card">
+  <div class="card-title">Worker URL</div>
+  <div class="fld">
+    <input id="workerUrl" value="https://accelq-testing-plan.boddedahimateja.workers.dev" />
+    <div class="hint">Your Cloudflare Worker — holds all API keys. Change this only if you re-deployed to a different URL.</div>
+  </div>
+</div>
+
+<!-- Requirement input -->
+<div class="card">
+  <div class="card-title">Paste your requirement or discussion</div>
+  <div class="fld">
+    <textarea id="discussion" placeholder="Write in plain English. Examples:&#10;&#10;• We need inventory management for Chef Krish so the AI can check stock levels&#10;• CenturyLink checkout page needs to show speed upgrade options with pricing&#10;• QuantumFiber location 1 N Jamestown Way Aurora CO needs 5Gig plan enabled&#10;• Gulmohar Greens product detail page is missing the Kadaknath breed description"></textarea>
+  </div>
+  <button class="ex-btn" onclick="loadEx('chef')">↳ Chef Krish</button>&nbsp;&nbsp;
+  <button class="ex-btn" onclick="loadEx('century')">↳ CenturyLink</button>&nbsp;&nbsp;
+  <button class="ex-btn" onclick="loadEx('quantum')">↳ QuantumFiber</button>&nbsp;&nbsp;
+  <button class="ex-btn" onclick="loadEx('gulmohar')">↳ Gulmohar Greens</button>
+  <br><br>
+  <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">🧠 Analyze &amp; Detect Company</button>
+</div>
+
+<div style="text-align:center;color:var(--muted);font-size:18px;margin:6px 0">↓</div>
+
+<!-- Result -->
+<div id="result">
+  <div class="card">
+    <div class="card-title">Detected Company &amp; Analysis</div>
+    <div class="det-box">
+      <div>
+        <div class="det-name" id="det-name">—</div>
+        <div class="det-conf" id="det-conf"></div>
+      </div>
+      <div class="jkey" id="det-jkey">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span id="risk-tag" class="risk-tag">—</span>
+      <span id="risk-reason" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px" id="det-summary"></div>
+    <div class="sec">Acceptance Criteria</div><div id="det-ac"></div>
+    <div class="sec">Affected Modules</div><div id="det-mods"></div>
+    <div id="det-changes"></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px" id="det-sp"></div>
+  </div>
+
+  <!-- Jira ticket -->
+  <div class="card">
+    <div class="card-title">Create Jira Backlog Ticket</div>
+    <div class="fld">
+      <label>Jira Project Key</label>
+      <input id="jiraKey" placeholder="SCRUM" style="max-width:200px" />
+      <div class="hint">Must be an existing project in your Jira. Your SCRUM project key is: <strong>SCRUM</strong></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      After creating, move the ticket to your active sprint in Jira → then use the ticket key in AI Test Plan Architect Step 4.
+    </div>
+    <button class="btn btn-jira" id="ticketBtn" onclick="createTicket()">&#9989; Approve &amp; Create Jira Backlog Ticket</button>
+    <div id="ticket-result"></div>
+    <div class="next-box" id="next-box">
+      <strong style="color:var(--text)">What to do next:</strong><br>
+      1. Move <span id="next-ticket" style="color:var(--ok);font-family:monospace;font-weight:700"></span> to your sprint in Jira<br>
+      2. Open <strong>AI Test Plan Architect</strong><br>
+      3. Step 4: App name = <span id="next-app" style="color:var(--neo4j)"></span><br>
+      4. Step 4: Jira project key = <span id="next-key" style="color:var(--neo4j);font-family:monospace"></span><br>
+      5. Click &#9889; Generate
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+var WORKER_URL = 'https://accelq-testing-plan.boddedahimateja.workers.dev';
+var currentAnalysis = null;
+
+document.getElementById('workerUrl').addEventListener('change', function(){
+  WORKER_URL = this.value.trim().replace(/\/+$/,'');
+  checkHealth();
+});
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Health check ─────────────────────────────────────────────────────────────
+async function checkHealth(){
+  var box = document.getElementById('health-rows');
+  box.innerHTML = '<div class="status-row"><div class="dot dot-wait"></div><span style="color:var(--muted)">Checking...</span></div>';
+  try {
+    var r = await fetch(WORKER_URL + '/health', { cache: 'no-store' });
+    if(!r.ok){ throw new Error('Worker returned HTTP ' + r.status); }
+    var d = await r.json();
+    var rows = [
+      { label: 'Cloudflare Worker',  ok: d.status === 'ok', detail: d.status === 'ok' ? 'Running' : 'Down' },
+      { label: 'Anthropic (Claude)', ok: d.anthropic,        detail: d.anthropic ? 'API key set' : 'ANTHROPIC_API_KEY missing' },
+      { label: 'Neo4j (graph read)', ok: d.neo4j_read,       detail: d.neo4j_read ? 'Connected' : 'NEO4J_KEY missing' },
+      { label: 'Neo4j (graph write)',ok: d.neo4j_write,      detail: d.neo4j_write ? 'Read + write verified' : 'NEO4J_USERNAME / NEO4J_PASSWORD missing' },
+      { label: 'Pinecone (vectors)', ok: d.pinecone,         detail: d.pinecone ? 'Connected' : 'PINECONE_API_KEY or PINECONE_HOST missing' },
+      { label: 'Voyage AI (embed)',  ok: d.voyage,           detail: d.voyage ? 'Connected' : 'VOYAGE_API_KEY missing' },
+      { label: 'Jira (ticket creation)', ok: d.jira,         detail: d.jira ? 'Credentials verified ✓' : 'JIRA_API_TOKEN or JIRA_EMAIL or JIRA_BASE_URL missing in Cloudflare secrets' },
+    ];
+    box.innerHTML = rows.map(function(row){
+      var dotCls = row.ok ? 'dot-ok' : 'dot-fail';
+      var badgeCls = row.ok ? 'badge-ok' : 'badge-fail';
+      var badgeTxt = row.ok ? 'OK' : 'MISSING';
+      return '<div class="status-row">' +
+        '<div class="dot '+dotCls+'"></div>' +
+        '<span style="flex:1;color:var(--text);font-size:12px">'+esc(row.label)+'</span>' +
+        '<span class="badge '+badgeCls+'">'+badgeTxt+'</span>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:6px">'+esc(row.detail)+'</span>' +
+        '</div>';
+    }).join('');
+
+    // Warn specifically about Jira if it is down
+    if(!d.jira){
+      box.innerHTML += '<div style="margin-top:10px;padding:10px 12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:8px;font-size:12px;color:var(--danger)">' +
+        '<strong>Jira not connected.</strong> Run these in your terminal:<br>' +
+        '<code style="font-size:11px;display:block;margin-top:6px;color:var(--text)">wrangler secret put JIRA_API_TOKEN --name accelq-testing-plan<br>' +
+        'wrangler secret put JIRA_EMAIL --name accelq-testing-plan<br>' +
+        'wrangler secret put JIRA_BASE_URL --name accelq-testing-plan</code>' +
+        '<div style="margin-top:6px">JIRA_BASE_URL value: <strong>https://boddedahimateja.atlassian.net</strong></div>' +
+        '</div>';
+    }
+  } catch(e) {
+    box.innerHTML = '<div class="status-row"><div class="dot dot-fail"></div>' +
+      '<span style="color:var(--danger);font-size:12px">Cannot reach Worker: '+esc(e.message)+'</span></div>' +
+      '<div style="margin-top:8px;padding:10px 12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:8px;font-size:11px;color:var(--danger)">' +
+      'Make sure the Worker URL is correct and deployed. Worker URL: '+esc(WORKER_URL)+'</div>';
+  }
+}
+
+// ── Examples ─────────────────────────────────────────────────────────────────
+var EXAMPLES = {
+  chef:    'We need to add real-time inventory management to Chef Krish. When the AI router receives a question about a dish, it should first check if the ingredient is in stock. Low-stock items should trigger a Jira ticket automatically. Cache must never be used for stock data — same rule as allergens.',
+  century: 'CenturyLink checkout page needs an upgrade. When a customer selects an internet plan, they should see available speed upgrade options with pricing displayed inline. Payment module needs to handle the bundle pricing correctly.',
+  quantum: 'QuantumFiber location at 1 N Jamestown Way, Aurora CO 80018 needs the 5Gig plan enabled in the system. The product detail page for this address should show the 5Gig option with correct pricing. The cart and checkout should support the 5Gig plan SKU.',
+  gulmohar:'Gulmohar Greens product detail page is missing the breed description for Kadaknath (Black Chicken) and Bater (Quail). The product detail page needs a breed info section and the allergy safety tags must be visible before add-to-cart.'
+};
+function loadEx(k){ document.getElementById('discussion').value = EXAMPLES[k] || ''; }
+
+// ── Analyze ──────────────────────────────────────────────────────────────────
+async function analyze(){
+  var disc = document.getElementById('discussion').value.trim();
+  var btn  = document.getElementById('analyzeBtn');
+  if(!disc){ alert('Paste a requirement or discussion first.'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Analyzing — reading Neo4j + calling Claude...';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('ticket-result').innerHTML = '';
+  document.getElementById('next-box').style.display = 'none';
+
+  try{
+    var r = await fetch(WORKER_URL + '/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ discussion: disc })
+    });
+    var data = await r.json();
+    if(!r.ok || data.error){
+      showErr('Analysis failed: ' + esc(data.error || ('HTTP ' + r.status)));
+      return;
+    }
+    currentAnalysis = data.analysis;
+    renderResult(data);
+  } catch(e){
+    showErr('Network error — cannot reach Worker: ' + e.message);
+  } finally{
+    btn.disabled = false;
+    btn.innerHTML = '🧠 Analyze &amp; Detect Company';
+  }
+}
+
+function showErr(msg){
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').innerHTML = '<div class="err-box">&#9888; ' + msg + '</div>';
+}
+
+function renderResult(data){
+  var a = data.analysis;
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').innerHTML = '';  // reset in case of error
+
+  // Restore inner HTML (it was replaced on error)
+  // Note: the result div contains two cards — detect + jira — we just show them
+  // They're inside #result which we reset; rebuild from data
+  var html = buildResultHTML(a);
+  document.getElementById('result').innerHTML = html;
+
+  // Re-bind ticket button
+  document.getElementById('ticketBtn').onclick = createTicket;
+  document.getElementById('jiraKey').value = a.jiraProjectKey || 'SCRUM';
+}
+
+function buildResultHTML(a){
+  var riskCls = 'risk-' + (a.riskLevel||'Medium')[0].toLowerCase();
+  var html = '<div class="card"><div class="card-title">Detected Company &amp; Analysis</div>';
+  html += '<div class="det-box">';
+  html += '<div><div class="det-name">'+esc(a.detectedApp||'Unknown')+'</div>';
+  html += '<div class="det-conf">Confidence: '+Math.round((a.detectedAppConfidence||0.8)*100)+'%</div></div>';
+  html += '<div class="jkey">'+esc(a.jiraProjectKey||'—')+'</div></div>';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+  html += '<span class="risk-tag '+riskCls+'">'+(a.riskLevel||'Medium')+' Risk</span>';
+  html += '<span style="font-size:12px;color:var(--muted)">'+esc(a.riskReason||'')+'</span></div>';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px">'+esc(a.summary||'')+'</div>';
+
+  if((a.acceptanceCriteria||[]).length){
+    html += '<div class="sec">Acceptance Criteria</div>';
+    html += (a.acceptanceCriteria||[]).map(function(c){
+      return '<div class="ac-item"><span class="ac-ok">✓</span><span>'+esc(c)+'</span></div>';
+    }).join('');
+  }
+  if((a.affectedModules||[]).length){
+    html += '<div class="sec">Affected Modules</div>';
+    html += (a.affectedModules||[]).map(function(m){ return '<span class="mpill">'+esc(m)+'</span>'; }).join('');
+  }
+  if((a.uiChanges||[]).length){
+    html += '<div class="sec">UI Changes</div>';
+    html += (a.uiChanges||[]).map(function(c){ return '<div class="ch-item">'+esc(c)+'</div>'; }).join('');
+  }
+  if((a.dataChanges||[]).length){
+    html += '<div class="sec">Data Changes</div>';
+    html += (a.dataChanges||[]).map(function(c){ return '<div class="ch-item">'+esc(c)+'</div>'; }).join('');
+  }
+  if((a.apiChanges||[]).length){
+    html += '<div class="sec">API Changes</div>';
+    html += (a.apiChanges||[]).map(function(c){ return '<div class="ch-item">'+esc(c)+'</div>'; }).join('');
+  }
+  if(a.estimatedStoryPoints){
+    html += '<div style="font-size:12px;color:var(--muted);margin-top:10px">&#128202; Story points: '+a.estimatedStoryPoints+' &middot; Type: '+(a.issueType||'Story')+' &middot; Priority: '+(a.priority||'Medium')+'</div>';
+  }
+  html += '</div>';  // end detect card
+
+  // Jira ticket card
+  html += '<div class="card"><div class="card-title">Create Jira Backlog Ticket</div>';
+  html += '<div class="fld"><label>Jira Project Key</label>';
+  html += '<input id="jiraKey" value="'+esc(a.jiraProjectKey||'SCRUM')+'" placeholder="SCRUM" style="max-width:200px" />';
+  html += '<div class="hint">Your SCRUM project key is <strong>SCRUM</strong>. Use CTL/GULM/QF if you created those projects.</div></div>';
+  html += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">After creating, move ticket to sprint → use ticket key in AI Test Plan Architect Step 4.</div>';
+  html += '<button class="btn btn-jira" id="ticketBtn">&#9989; Approve &amp; Create Jira Backlog Ticket</button>';
+  html += '<div id="ticket-result"></div>';
+  html += '<div class="next-box" id="next-box">';
+  html += '<strong style="color:var(--text)">What to do next:</strong><br>';
+  html += '1. Move <span id="next-ticket" style="color:var(--ok);font-family:monospace;font-weight:700"></span> to your sprint in Jira<br>';
+  html += '2. Open <strong>AI Test Plan Architect</strong><br>';
+  html += '3. Step 4: App name = <span id="next-app" style="color:var(--neo4j)"></span><br>';
+  html += '4. Step 4: Jira project key = <span id="next-key" style="color:var(--neo4j);font-family:monospace"></span><br>';
+  html += '5. Click &#9889; Generate</div>';
+  html += '</div>';
+  return html;
+}
+
+// ── Create Jira ticket ────────────────────────────────────────────────────────
+async function createTicket(){
+  if(!currentAnalysis){ alert('Run Analyze first.'); return; }
+  var projectKey = (document.getElementById('jiraKey').value || '').trim().toUpperCase();
+  if(!projectKey){ alert('Enter a Jira project key — use SCRUM if unsure.'); return; }
+
+  var btn = document.getElementById('ticketBtn');
+  var resDiv = document.getElementById('ticket-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Creating Jira ticket in ' + projectKey + '...';
+  resDiv.innerHTML = '';
+
+  try{
+    var r = await fetch(WORKER_URL + '/create-ticket', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ analysis: currentAnalysis, projectKey: projectKey })
+    });
+    var data = await r.json();
+
+    if(r.ok && data.status === 'ok'){
+      resDiv.innerHTML = '<div class="ticket-ok">&#9989; Ticket created: <strong>'+esc(data.ticketKey)+'</strong> in project <strong>'+esc(data.projectKey)+'</strong><br>' +
+        '<a href="'+esc(data.ticketUrl)+'" target="_blank" style="color:#4A9DFF;font-weight:700">Open '+esc(data.ticketKey)+' in Jira &#8594;</a></div>';
+
+      var nb = document.getElementById('next-box');
+      document.getElementById('next-ticket').textContent = data.ticketKey;
+      document.getElementById('next-app').textContent = currentAnalysis.detectedApp || 'your app';
+      document.getElementById('next-key').textContent = projectKey;
+      nb.style.display = 'block';
+      btn.innerHTML = '&#9989; ' + data.ticketKey + ' created';
+    } else {
+      // Show the full error from the Worker
+      var errMsg = data.error || ('HTTP ' + r.status + ' — unknown error');
+      var detail = data.detail ? JSON.stringify(data.detail, null, 2) : '';
+      resDiv.innerHTML = '<div class="ticket-err">' +
+        '<strong>&#10007; Jira ticket creation failed</strong><br><br>' +
+        esc(errMsg) +
+        (detail ? '<br><br><details><summary style="cursor:pointer;font-size:11px">Technical detail</summary><pre style="font-size:10px;margin-top:6px;white-space:pre-wrap">'+esc(detail)+'</pre></details>' : '') +
+        '<br><br><strong>Common fixes:</strong><br>' +
+        '&#8226; Project key must exist in your Jira (try SCRUM)<br>' +
+        '&#8226; Check Jira secrets are set: run <code>wrangler secret list --name accelq-testing-plan</code><br>' +
+        '&#8226; Check connection status panel above — Jira must show OK' +
+        '</div>';
+      btn.disabled = false;
+      btn.innerHTML = '&#9989; Approve &amp; Create Jira Backlog Ticket';
+    }
+  } catch(e){
+    resDiv.innerHTML = '<div class="ticket-err"><strong>Network error:</strong> '+esc(e.message)+'<br>Check that the Worker URL is correct and the Worker is deployed.</div>';
+    btn.disabled = false;
+    btn.innerHTML = '&#9989; Approve &amp; Create Jira Backlog Ticket';
+  }
+}
+
+// Run on load
+checkHealth();
+</script>
+</body>
+</html>
