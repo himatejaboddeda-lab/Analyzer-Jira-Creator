@@ -102,7 +102,8 @@ textarea{resize:vertical;min-height:130px;line-height:1.6}
   <button class="ex-btn" onclick="loadEx('century')">↳ CenturyLink</button>&nbsp;&nbsp;
   <button class="ex-btn" onclick="loadEx('quantum')">↳ QuantumFiber</button>&nbsp;&nbsp;
   <button class="ex-btn" onclick="loadEx('gulmohar')">↳ Gulmohar Greens</button>&nbsp;&nbsp;
-  <button class="ex-btn" onclick="loadEx('taste')">↳ Taste of India (menu)</button>
+  <button class="ex-btn" onclick="loadEx('taste')">↳ Taste of India (menu)</button>&nbsp;&nbsp;
+  <button class="ex-btn" onclick="loadEx('welive')" style="background:var(--ok,#0ea66e);border-color:var(--ok,#0ea66e)">↳ WeLive Foundation (SEO BA)</button>
   <br><br>
   <button class="btn btn-primary" id="analyzeBtn" onclick="analyze()">🧠 Analyze &amp; Detect Company</button>
 </div>
@@ -220,7 +221,8 @@ var EXAMPLES = {
   century: 'CenturyLink checkout page needs an upgrade. When a customer selects an internet plan, they should see available speed upgrade options with pricing displayed inline. Payment module needs to handle the bundle pricing correctly.',
   quantum: 'QuantumFiber location at 1 N Jamestown Way, Aurora CO 80018 needs the 5Gig plan enabled in the system. The product detail page for this address should show the 5Gig option with correct pricing. The cart and checkout should support the 5Gig plan SKU.',
   gulmohar:'Gulmohar Greens product detail page is missing the breed description for Kadaknath (Black Chicken) and Bater (Quail). The product detail page needs a breed info section and the allergy safety tags must be visible before add-to-cart.',
-  taste:   'Add two new dishes to the Taste of India menu: Kaju Chicken in the Appetizers category, and Nellore Fish Curry in the Seafood Entrees category. Make sure existing menu items are not affected and allergens are declared.'
+  taste:   'Add two new dishes to the Taste of India menu: Kaju Chicken in the Appetizers category, and Nellore Fish Curry in the Seafood Entrees category. Make sure existing menu items are not affected and allergens are declared.',
+  welive:  'Business Requirement: WeLive Foundation SEO Upgrade for Care Leavers & Aftercare Authority\n\nApplication: welivefoundation.org.in\nTarget page: /care-leavers-aftercare\n\nBusiness Goal: Upgrade the website SEO so the site ranks better for care leavers, orphans, CNCP, shelter home alumni, and aftercare programs in India.\n\nIn-Scope:\n1. Rename H1 on /care-leavers-aftercare to "Care & Aftercare Programs for Care Leavers in India"\n2. Build a FAQ accordion with questions like "What is an Aftercare program in India?" and inject FAQ schema\n3. Add impact counters showing verified organizational metrics\n4. Add a vlog grid targeting keywords: care leavers, CNCP India, orphanages in India\n5. Update Gallery page: H1 = "Care Leavers & Aftercare Centers Gallery", meta title updated\n6. Update Blog, Centers, About Us, Careers pages with keyword-rich headings and meta titles\n7. Add alt text to all images and rename image files descriptively\n\nOut of Scope: External backlinks, paid ads, PPC\n\nBA Questions: What are the verified impact counter numbers? Which YouTube videos are approved? Which cities for center headings?'
 };
 function loadEx(k){ document.getElementById('discussion').value = EXAMPLES[k] || ''; }
 
@@ -290,9 +292,49 @@ function buildResultHTML(a){
   html += '<span style="font-size:12px;color:var(--muted)">'+esc(a.riskReason||'')+'</span></div>';
   html += '<div style="font-size:13px;font-weight:600;margin-bottom:10px">'+esc(a.summary||'')+'</div>';
 
-  // ENTITY TYPE badge — Restaurant (menu update) vs Application
+  // ENTITY TYPE badge
   if(a.entityType === 'Restaurant'){
     html += '<div style="display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;background:var(--ok-dim);color:var(--ok);border:1px solid var(--ok);margin-bottom:10px">🍽️ RESTAURANT MENU UPDATE — owned, upgrades allowed'+(a.entityId?' · '+esc(a.entityId):'')+'</div>';
+  }
+
+  // BA PLANNING MODE badge
+  var isBAMode = a.planningMode === 'NEW_APPLICATION_REQUIREMENT_MODE' || a.planningMode === 'PUBLIC_REQUIREMENT_PLANNING_MODE';
+  if(isBAMode){
+    html += '<div style="display:inline-block;padding:4px 12px;border-radius:12px;font-size:11px;font-weight:700;background:#ecfdf5;color:#065f46;border:1px solid #34d399;margin-bottom:10px">📋 '+esc(a.planningMode.replace(/_/g,' '))+' — Test planning allowed · Implementation needs source access</div>';
+    // Business Requirement Summary
+    if(a.businessRequirementSummary){html+='<div style="padding:10px 12px;background:#f0fdf4;border:1px solid #34d399;border-radius:8px;margin-bottom:10px;font-size:12px;line-height:1.7;color:#065f46"><strong>Business Goal:</strong> '+esc(a.businessGoal||'')+'<br>'+esc(a.businessRequirementSummary)+'</div>';}
+    // Functional Requirements chips
+    if((a.functionalRequirements||[]).length){
+      html+='<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Functional Requirements ('+a.functionalRequirements.length+')</div>';
+      html+='<div style="margin-bottom:10px">';
+      a.functionalRequirements.slice(0,8).forEach(function(fr){
+        var c=fr.source==='CONFIRMED'?'#065f46':'#92400e';var bg=fr.source==='CONFIRMED'?'#ecfdf5':'#fffbeb';var br=fr.source==='CONFIRMED'?'#34d399':'#fbbf24';
+        html+='<div style="padding:5px 10px;background:'+bg+';border:1px solid '+br+';border-radius:6px;margin-bottom:4px;font-size:11px;color:'+c+'">['+esc(fr.id)+'] ['+esc(fr.source||'CONFIRMED')+'] '+esc(fr.requirement||'')+'</div>';
+      });
+      if(a.functionalRequirements.length>8){html+='<div style="font-size:11px;color:#6b7280">…and '+(a.functionalRequirements.length-8)+' more in Jira ticket</div>';}
+      html+='</div>';
+    }
+    // Blast Radius tiers
+    if(a.blastRadius){
+      html+='<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Blast Radius</div>';
+      html+='<div style="margin-bottom:10px">';
+      var br=a.blastRadius;
+      (br.confirmed||[]).forEach(function(i){html+='<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:10px;font-size:10px;background:#ecfdf5;color:#065f46;border:1px solid #34d399">✅ '+esc(i)+'</span>';});
+      (br.inferredLikely||[]).forEach(function(i){html+='<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:10px;font-size:10px;background:#fffbeb;color:#92400e;border:1px solid #fbbf24">🔶 '+esc(i)+'</span>';});
+      (br.inferredPossible||[]).forEach(function(i){html+='<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:10px;font-size:10px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd">🔷 '+esc(i)+'</span>';});
+      (br.needsBAConfirmation||[]).forEach(function(i){html+='<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:10px;font-size:10px;background:#fdf2f8;color:#86198f;border:1px solid #e879f9">❓ '+esc(i)+'</span>';});
+      html+='</div>';
+    }
+    // Unknowns / BA questions
+    if((a.unknowns||[]).length){
+      html+='<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">BA Questions / Unknowns ('+a.unknowns.length+')</div>';
+      html+='<div style="margin-bottom:10px">';
+      a.unknowns.forEach(function(u){
+        var uc=u.blocksProgress?'#dc2626':'#6b7280';var ubg=u.blocksProgress?'#fef2f2':'#f9fafb';var ubr=u.blocksProgress?'#fca5a5':'#e5e7eb';
+        html+='<div style="padding:5px 10px;background:'+ubg+';border:1px solid '+ubr+';border-radius:6px;margin-bottom:4px;font-size:11px;color:'+uc+'">'+(u.blocksProgress?'⛔ ':'')+esc(u.question||'')+'</div>';
+      });
+      html+='</div>';
+    }
   }
 
   // MENU ITEMS — dish → category → allergens (restaurant only)
